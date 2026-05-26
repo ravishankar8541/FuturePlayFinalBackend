@@ -1,5 +1,5 @@
 // backend/controllers/orderController.js
-const Order = require('../models/Order');
+const Order = require('../models/order');
 
 const getAllOrders = async (req, res) => {
     try {
