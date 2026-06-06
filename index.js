@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 8000;
 
 // ✅ CORS - Only once, with proper configuration
 app.use(cors({
-    origin: ['https://future-play-frontend-new.vercel.app'],
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']

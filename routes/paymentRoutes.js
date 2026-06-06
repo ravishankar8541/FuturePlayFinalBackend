@@ -15,6 +15,6 @@ router.use(authMiddleware);
 router.post('/create-order', createPaymentOrder);      // Create payment order
 router.post('/verify', verifyPayment);                 // Verify payment after success
 router.get('/:paymentId', getPaymentDetails);          // Get payment details
-router.post('/refund', refundPayment);                 // Refund payment
+router.post('/refund', refundPayment);                 
 
 module.exports = router;

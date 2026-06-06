@@ -5,24 +5,14 @@ const getAllOrders = async (req, res) => {
     try {
         console.log('📋 Admin fetching all orders...');
         
-        // Optional: Add admin check here if you have isAdmin field
-        // if (!req.user.isAdmin) {
-        //     return res.status(403).json({
-        //         status: false,
-        //         message: 'Access denied. Admin only.'
-        //     });
-        // }
-        
         const { search, status, page = 1, limit = 10 } = req.query;
         
         let query = {};
         
-        // Filter by status
         if (status && status !== 'All') {
             query.status = status.toLowerCase();
         }
         
-        // Search by order ID or customer name/email
         if (search) {
             query.$or = [
                 { orderId: { $regex: search, $options: 'i' } },
@@ -58,6 +48,7 @@ const getAllOrders = async (req, res) => {
         });
     }
 };
+
 const createOrder = async (req, res) => {
     try {
         console.log('📦 Creating order...');
@@ -74,14 +65,11 @@ const createOrder = async (req, res) => {
             total
         } = req.body;
 
-        // ✅ Get user ID (can be null for guests)
         const userId = req.user?._id || req.user?.userId || req.user?.id || null;
         const userEmail = req.user?.email || customer?.email;
         
-        // ✅ Generate unique order ID
         const orderId = 'ORD' + Date.now().toString().slice(-8) + Math.floor(Math.random() * 1000);
         
-        // ✅ Process items safely
         const processedItems = items.map(item => ({
             name: item.name || 'Unknown Product',
             price: Number(item.price) || 0,
@@ -89,7 +77,6 @@ const createOrder = async (req, res) => {
             image: item.img || item.image || ''
         }));
 
-        // ✅ Handle paymentDetails safely with default values
         const safePaymentDetails = {
             transactionId: paymentDetails?.transactionId || 'TXN-' + Date.now(),
             status: paymentDetails?.status || 'success',
@@ -120,13 +107,12 @@ const createOrder = async (req, res) => {
             discount: Number(discount) || 0,
             total: Number(total) || 0,
             status: 'confirmed',
-            paymentStatus: paymentMethod === 'cod' ? 'pending' : 'paid'
+            paymentStatus: paymentMethod === 'cod' ? 'pending' : 'paid'  // ✅ CORRECT
         });
 
         const savedOrder = await newOrder.save();
         console.log('✅ Order saved to DB:', savedOrder.orderId);
-        console.log('✅ User ID:', userId);
-        console.log('✅ Customer email:', savedOrder.customer.email);
+        console.log('✅ Payment Status:', savedOrder.paymentStatus);
 
         res.status(201).json({
             status: true,
@@ -143,20 +129,16 @@ const createOrder = async (req, res) => {
         });
     }
 };
-// @desc    Get all orders for logged in user
-// @route   GET /api/user/orders
-// @access  Private
-// @desc    Get all orders for logged in user
-// @route   GET /api/user/orders
-// @access  Private
+
 const getUserOrders = async (req, res) => {
     try {
-        console.log('📋 Fetching orders - FORCE MODE');
+        const userId = req.user._id || req.user.userId || req.user.id;
         
-        // ✅ FORCE: Return ALL orders (ignore user filter temporarily)
-        const orders = await Order.find().sort({ createdAt: -1 });
+        console.log('📋 Fetching orders for user:', userId);
         
-        console.log(`✅ Found ${orders.length} total orders`);
+        const orders = await Order.find({ userId: userId }).sort({ createdAt: -1 });
+        
+        console.log(`✅ Found ${orders.length} orders for user`);
         
         res.json({
             status: true,
@@ -174,9 +156,6 @@ const getUserOrders = async (req, res) => {
     }
 };
 
-// @desc    Get single order by ID
-// @route   GET /api/user/orders/:orderId
-// @access  Private
 const getSingleOrder = async (req, res) => {
     try {
         const userId = req.user._id || req.user.userId || req.user.id;
@@ -207,9 +186,6 @@ const getSingleOrder = async (req, res) => {
     }
 };
 
-// @desc    Update order status (for admin)
-// @route   PUT /api/orders/:orderId/status
-// @access  Private/Admin
 const updateOrderStatus = async (req, res) => {
     try {
         const { status } = req.body;
@@ -252,9 +228,6 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-// @desc    Cancel order
-// @route   PUT /api/orders/:orderId/cancel
-// @access  Private
 const cancelOrder = async (req, res) => {
     try {
         const userId = req.user._id || req.user.userId || req.user.id;
@@ -271,7 +244,6 @@ const cancelOrder = async (req, res) => {
             });
         }
 
-        // Check if order can be cancelled (only pending or confirmed)
         if (order.status !== 'pending' && order.status !== 'confirmed') {
             return res.status(400).json({
                 status: false,
@@ -297,11 +269,68 @@ const cancelOrder = async (req, res) => {
     }
 };
 
+// @desc    Update payment status (for admin - COD to Paid)
+// @route   PUT /api/orders/:orderId/payment-status
+// @access  Private/Admin
+const updatePaymentStatus = async (req, res) => {
+    try {
+        const { paymentStatus } = req.body;
+        const { orderId } = req.params;
+
+        // Validate payment status
+        if (!['pending', 'paid', 'failed'].includes(paymentStatus)) {
+            return res.status(400).json({
+                status: false,
+                message: 'Invalid payment status. Use: pending, paid, or failed'
+            });
+        }
+
+        // Find order
+        const order = await Order.findById(orderId);
+        
+        if (!order) {
+            return res.status(404).json({
+                status: false,
+                message: 'Order not found'
+            });
+        }
+
+        // Update payment status
+        order.paymentStatus = paymentStatus;
+        
+        // Also update paymentDetails.status for consistency
+        if (paymentStatus === 'paid') {
+            order.paymentDetails.status = 'success';
+        } else if (paymentStatus === 'pending') {
+            order.paymentDetails.status = 'pending';
+        }
+        
+        await order.save();
+
+        console.log(`✅ Order ${order.orderId}: Payment status updated to ${paymentStatus}`);
+
+        res.json({
+            status: true,
+            message: `Payment status updated to ${paymentStatus}`,
+            order: order
+        });
+        
+    } catch (error) {
+        console.error('Error updating payment status:', error);
+        res.status(500).json({
+            status: false,
+            message: 'Failed to update payment status',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getUserOrders,
     getSingleOrder,
     createOrder,
     updateOrderStatus,
     cancelOrder,
-     getAllOrders
-}; 
+    getAllOrders,
+     updatePaymentStatus 
+};

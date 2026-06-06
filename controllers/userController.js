@@ -8,11 +8,10 @@ const Product = require('../models/product');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASS  
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS  // app password
     }
 });
-
 exports.register = async (req, res) => {
     try {
         const { fullName, email, password, confirmPassword } = req.body;
@@ -119,9 +118,7 @@ exports.login = async (req, res) => {
         });
     }
 }
-
-// Add these functions to your userController.js
-// FORGOT PASSWORD - Development version (NO email sending)
+// controllers/userController.js - UPDATE forgotPassword function
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -156,17 +153,37 @@ exports.forgotPassword = async (req, res) => {
         // Create reset URL
         const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
         
-        // ONLY LOG TO CONSOLE - NO EMAIL SENDING
-        console.log("\n========================================");
-        console.log("🔐 PASSWORD RESET LINK (COPY THIS URL):");
-        console.log(resetUrl);
-        console.log("========================================\n");
+        // ✅ ACTUAL EMAIL SENDING CODE
+        const mailOptions = {
+            from: `"Toy Store" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: "Password Reset Request",
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #800000;">Reset Your Password</h2>
+                    <p>Hello ${user.fullName},</p>
+                    <p>You requested to reset your password. Click the button below to reset it:</p>
+                    <a href="${resetUrl}" 
+                       style="display: inline-block; background-color: #800000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+                        Reset Password
+                    </a>
+                    <p>Or copy this link: <a href="${resetUrl}">${resetUrl}</a></p>
+                    <p>This link will expire in 1 hour.</p>
+                    <p>If you didn't request this, please ignore this email.</p>
+                    <hr>
+                    <p style="color: #666; font-size: 12px;">© Toy Store | All Rights Reserved</p>
+                </div>
+            `
+        };
         
-        // Return success with the link (for development)
+        // Send email
+        await transporter.sendMail(mailOptions);
+        
+        console.log(`✅ Password reset email sent to: ${user.email}`);
+        
         return res.status(200).json({
             status: true,
-            message: "Password reset link generated! Check server console for the link.",
-            resetUrl: resetUrl
+            message: "Password reset link has been sent to your email"
         });
         
     } catch (error) {
@@ -177,7 +194,6 @@ exports.forgotPassword = async (req, res) => {
         });
     }
 };
-
 // RESET PASSWORD - Actually change password
 exports.resetPassword = async (req, res) => {
     try {

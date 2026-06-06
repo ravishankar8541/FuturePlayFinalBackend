@@ -7,7 +7,8 @@ const {
     createOrder,
     updateOrderStatus,
     cancelOrder,
-    getAllOrders  // This function exists in controller
+    getAllOrders,
+       updatePaymentStatus
 } = require('../controllers/orderController');
 const authMiddleware = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth'); // Add this import
@@ -24,5 +25,6 @@ router.put('/orders/:orderId/cancel', cancelOrder);
 
 // ✅ Admin route - requires admin authentication
 router.get('/admin/orders', adminAuth, getAllOrders);
+router.put('/admin/orders/:orderId/payment-status', adminAuth, updatePaymentStatus);
 
 module.exports = router;

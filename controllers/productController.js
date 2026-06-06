@@ -4,7 +4,7 @@ const cloudinary = require('cloudinary').v2; // ADD THIS - IMPORTANT!
 // Helper function to upload multiple images to Cloudinary
 const uploadMultipleImages = async (files, folder) => {
     if (!files || files.length === 0) return [];
-    
+
     const uploadPromises = files.map(file => {
         return new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
@@ -17,15 +17,15 @@ const uploadMultipleImages = async (files, folder) => {
             uploadStream.end(file.buffer);
         });
     });
-    
+
     return Promise.all(uploadPromises);
 };
 
 exports.addProduct = async (req, res) => {
     try {
-        const { 
-            productName, productPrice, originalPrice, category, tag, 
-            status, rating, reviews, stock, description, variants 
+        const {
+            productName, productPrice, originalPrice, category, tag,
+            status, rating, reviews, stock, description, variants
         } = req.body;
 
         if (!req.files?.image?.[0]) {
@@ -35,7 +35,14 @@ exports.addProduct = async (req, res) => {
         const mainImageUrl = req.files.image[0].path;
         const sideImageUrls = req.files?.sideImages?.map(file => file.path) || [];
 
-        // === VARIANTS HANDLING - SAFER VERSION ===
+        // ✅ Validate numbers
+        const validPrice = Number(productPrice);
+        const validOriginalPrice = Number(originalPrice);
+        const validRating = Number(rating);
+        const validReviews = Number(reviews);
+        const validStock = Number(stock);
+
+        // Handle variants
         let parsedVariants = [];
         if (variants) {
             try {
@@ -64,23 +71,23 @@ exports.addProduct = async (req, res) => {
             return {
                 color: variant.color || "#000000",
                 colorName: variant.colorName || "Default",
-                stock: Number(variant.stock) || 50,
+                stock: isNaN(Number(variant.stock)) ? 50 : Number(variant.stock),
                 images: variantImageUrls
             };
         });
 
         const product = await Product.create({
             name: productName,
-            price: Number(productPrice),
-            originalPrice: Number(originalPrice),
+            price: isNaN(validPrice) ? 0 : validPrice,
+            originalPrice: isNaN(validOriginalPrice) ? 0 : validOriginalPrice,
             image: mainImageUrl,
             sideImages: sideImageUrls,
             category: category || "Uncategorized",
             tag: tag || "",
             status: status || "In Stock",
-            rating: Number(rating) || 4.5,
-            reviews: Number(reviews) || 0,
-            stock: Number(stock) || 50,
+            rating: isNaN(validRating) ? 4.5 : validRating,
+            reviews: isNaN(validReviews) ? 0 : validReviews,
+            stock: isNaN(validStock) ? 50 : validStock,
             description: description || "",
             variants: finalVariants
         });
@@ -89,79 +96,108 @@ exports.addProduct = async (req, res) => {
 
     } catch (error) {
         console.error("Add Product Error:", error);
-        res.status(500).json({ 
-            status: false, 
-            message: error.message 
+        res.status(500).json({
+            status: false,
+            message: error.message
         });
     }
 };
 
-// Keep other functions (getProducts, getProduct, updateProduct, deleteProduct)
-// Make sure to fix updateProduct similarly:
-
 exports.updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const { 
-            productName, 
-            productPrice, 
-            originalPrice, 
-            category, 
-            tag, 
-            status, 
-            rating, 
-            reviews,
-            stock,
-            description,
-            variants
-        } = req.body;
         
+        // ✅ Extract fields
+        let parsedVariants = null;
+        
+        if (req.body.variants) {
+            try {
+                parsedVariants = JSON.parse(req.body.variants);
+                console.log("✅ Variants parsed successfully:", parsedVariants.length);
+            } catch (e) {
+                console.error("❌ Error parsing variants:", e);
+                if (Array.isArray(req.body.variants)) {
+                    parsedVariants = req.body.variants;
+                }
+            }
+        }
+        
+        // ✅ Build update data
         let updateData = {
-            name: productName,
-            price: Number(productPrice),
-            originalPrice: Number(originalPrice),
-            category: category,
-            tag: tag || "",
-            status: status || "In Stock",
-            rating: Number(rating) || 4.5,
-            reviews: Number(reviews) || 0,
-            stock: Number(stock) || 50,
-            description: description || ""
+            name: req.body.productName,
+            price: parseFloat(req.body.productPrice) || 0,
+            originalPrice: parseFloat(req.body.originalPrice) || 0,
+            category: req.body.category,
+            tag: req.body.tag || "",
+            status: req.body.status || "In Stock",
+            rating: parseFloat(req.body.rating) || 4.5,
+            reviews: parseInt(req.body.reviews) || 0,
+            stock: parseInt(req.body.stock) || 50,
+            description: req.body.description || ""
         };
 
-        // FIXED: Check for main image in req.files.image
+        // Handle images
         if (req.files && req.files.image && req.files.image[0]) {
             updateData.image = req.files.image[0].path;
-        } else if (req.file) {
-            updateData.image = req.file.path;
         }
-
-        // Handle side images
         if (req.files && req.files.sideImages && req.files.sideImages.length > 0) {
             updateData.sideImages = req.files.sideImages.map(file => file.path);
         }
 
-        // Handle variants
-        if (variants && variants !== 'undefined' && variants !== 'null') {
-            try {
-                updateData.variants = typeof variants === 'string' ? JSON.parse(variants) : variants;
-            } catch (e) {
-                console.error("Error parsing variants:", e);
-            }
+        // ✅ Handle variants with proper validation
+        if (parsedVariants && Array.isArray(parsedVariants)) {
+            const formattedVariants = parsedVariants.map(v => ({
+                color: v.color || "#000000",
+                colorName: v.colorName || "Default",
+                stock: parseInt(v.stock) || 50,
+                images: Array.isArray(v.images) && v.images.length > 0 ? v.images : []  // ✅ Ensure images is array
+            }));
+            updateData.variants = formattedVariants;
         }
 
-        const updatedProduct = await Product.findByIdAndUpdate(id, updateData, { 
-            new: true, 
-            runValidators: true 
+        console.log("📦 Final updateData:", JSON.stringify(updateData, null, 2));
+
+        // ✅ TRY THIS: Use updateOne instead of findByIdAndUpdate
+        const result = await Product.updateOne(
+            { _id: id },
+            { $set: updateData }
+        );
+
+        console.log("📊 Update Result:", {
+            matchedCount: result.matchedCount,
+            modifiedCount: result.modifiedCount,
+            acknowledged: result.acknowledged
         });
 
-        if (!updatedProduct) {
+        if (result.matchedCount === 0) {
             return res.status(404).json({ status: false, message: "Product not found" });
         }
 
+        if (result.modifiedCount === 0) {
+            console.log("⚠️ No changes made to document");
+            // Fetch current product to see if it already has the data
+            const currentProduct = await Product.findById(id);
+            return res.json({ 
+                status: true, 
+                message: "No changes needed", 
+                data: currentProduct 
+            });
+        }
+
+        // Fetch updated product
+        const updatedProduct = await Product.findById(id);
+        
+        console.log("✅ Product updated successfully!");
+        console.log("✅ Variants count in DB:", updatedProduct.variants?.length);
+
         res.json({ status: true, message: "Product updated", data: updatedProduct });
+        
     } catch (error) {
         console.error("Update Product Error:", error);
+        // ✅ Log validation errors
+        if (error.name === 'ValidationError') {
+            console.error("Validation Error Details:", error.errors);
+        }
         res.status(500).json({ status: false, message: error.message });
     }
 };
@@ -192,7 +228,7 @@ exports.getProducts = async (req, res) => {
 };
 
 exports.getProduct = async (req, res) => {
-    const { id } = req.params; 
+    const { id } = req.params;
     try {
         const product = await Product.findById(id);
         if (!product) {
@@ -221,7 +257,7 @@ exports.getProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
     try {
         const deletedProduct = await Product.findByIdAndDelete(req.params.id);
-        
+
         if (!deletedProduct) {
             return res.status(404).json({
                 status: false,
@@ -229,16 +265,16 @@ exports.deleteProduct = async (req, res) => {
             });
         }
 
-        res.status(200).json({ 
+        res.status(200).json({
             status: true,
-            message: "Product deleted successfully" 
+            message: "Product deleted successfully"
         });
     } catch (err) {
         console.log(err);
-        res.status(500).json({ 
+        res.status(500).json({
             status: false,
             message: "Error in deleting product",
-            error: err.message 
+            error: err.message
         });
     }
 };
