@@ -15,9 +15,12 @@ dbConnect();
 
 const PORT = process.env.PORT || 8000;
 
-// ✅ CORS - Only once, with proper configuration
+// ✅ CORS Configurations - Checked & Sanitized 
 app.use(cors({
-    origin: ['https://future-play-toysfrontend.vercel.app'],
+    origin: [
+        'https://future-play-toysfrontend.vercel.app',
+        'https://www.future-play-toysfrontend.vercel.app' // Handles potential subdomain routing issues
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -41,15 +44,17 @@ app.use('/api/user', userRoutes);
 app.use('/api', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 
-// ✅ Error handling middleware (optional but recommended)
+// ✅ Robust Global Production Error Interceptor
 app.use((err, req, res, next) => {
+    console.error("🔥 Deployed Server Error Trace:", err.message);
     console.error(err.stack);
+    
     res.status(500).json({ 
         status: false, 
-        message: 'Something went wrong!' 
+        message: err.message || 'Something went wrong on the server!' 
     });
 });
 
 app.listen(PORT, () => {
-    console.log(`✅ Server is running on http://localhost:${PORT}`);
+    console.log(`✅ Server running on port ${PORT}`);
 });
