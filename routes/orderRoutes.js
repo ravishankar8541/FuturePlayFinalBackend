@@ -8,7 +8,8 @@ const {
     updateOrderStatus,
     cancelOrder,
     getAllOrders,
-       updatePaymentStatus
+       updatePaymentStatus,
+       deleteOrder
 } = require('../controllers/orderController');
 const authMiddleware = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth'); // Add this import
@@ -22,6 +23,7 @@ router.get('/user/orders/:orderId', getSingleOrder);
 router.post('/orders/create', createOrder);
 router.put('/orders/:orderId/status', updateOrderStatus);
 router.put('/orders/:orderId/cancel', cancelOrder);
+router.delete('/admin/orders/:orderId', adminAuth, deleteOrder);
 
 // ✅ Admin route - requires admin authentication
 router.get('/admin/orders', adminAuth, getAllOrders);

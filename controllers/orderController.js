@@ -324,6 +324,40 @@ const updatePaymentStatus = async (req, res) => {
         });
     }
 };
+// @desc    Delete order (Admin only)
+// @route   DELETE /api/admin/orders/:orderId
+// @access  Private/Admin
+const deleteOrder = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        
+        const order = await Order.findById(orderId);
+        
+        if (!order) {
+            return res.status(404).json({
+                status: false,
+                message: 'Order not found'
+            });
+        }
+        
+        await Order.findByIdAndDelete(orderId);
+        
+        console.log(`✅ Order ${order.orderId} deleted successfully`);
+        
+        res.json({
+            status: true,
+            message: 'Order deleted successfully'
+        });
+        
+    } catch (error) {
+        console.error('Error deleting order:', error);
+        res.status(500).json({
+            status: false,
+            message: 'Failed to delete order',
+            error: error.message
+        });
+    }
+};
 
 module.exports = {
     getUserOrders,
@@ -332,5 +366,6 @@ module.exports = {
     updateOrderStatus,
     cancelOrder,
     getAllOrders,
-     updatePaymentStatus 
+     updatePaymentStatus,
+     deleteOrder
 };
