@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 8000;
 
 // ✅ CORS - Only once, with proper configuration
 app.use(cors({
-    origin: ['https://www.futureplaytoys.com'],
+    origin: ['https://www.futureplaytoys.com','https://futureplaytoys.com'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
