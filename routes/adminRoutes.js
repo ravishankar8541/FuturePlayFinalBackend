@@ -4,6 +4,6 @@ const { adminLogin } = require('../controllers/authController');
 const { getAllOrders } = require('../controllers/orderController');
 
 router.post('/login', adminLogin);
-router.get('/orders', getAllOrders);  // ← Yahan se auth hata diya
+router.get('/orders', getAllOrders);  
 
 module.exports = router;

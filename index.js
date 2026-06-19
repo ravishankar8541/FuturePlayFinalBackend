@@ -15,13 +15,42 @@ dbConnect();
 
 const PORT = process.env.PORT || 8000;
 
-// ✅ CORS - Only once, with proper configuration
-app.use(cors({
-    origin: ['https://www.futureplaytoys.com','https://futureplaytoys.com'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// ✅ MANUAL CORS HANDLER - 100% Working
+app.use((req, res, next) => {
+    // ✅ Allow your frontend domains
+    const allowedOrigins = [
+        'https://www.futureplaytoys.com',
+        'https://futureplaytoys.com'
+        
+    ];
+    
+    const origin = req.headers.origin;
+    
+    // ✅ Check if origin is allowed
+    if (allowedOrigins.includes(origin) || !origin) {
+        res.header('Access-Control-Allow-Origin', origin || '*');
+    }
+    
+    // ✅ Allow credentials (cookies, authorization headers)
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    // ✅ Allow all methods
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    
+    // ✅ Allow all headers
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-HTTP-Method-Override');
+    
+    // ✅ Expose headers to frontend
+    res.header('Access-Control-Expose-Headers', 'Authorization, Content-Disposition');
+    
+    // ✅ Handle preflight OPTIONS request immediately
+    if (req.method === 'OPTIONS') {
+        console.log('✅ OPTIONS request handled:', req.headers.origin);
+        return res.sendStatus(200);
+    }
+    
+    next();
+});
 
 // ✅ Body parsing middleware
 app.use(express.json());
