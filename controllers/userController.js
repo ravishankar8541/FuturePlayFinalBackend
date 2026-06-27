@@ -93,7 +93,7 @@ exports.login = async (req, res) => {
                     userId: user._id,  // Changed from 'id' to 'userId'
                     email: user.email  
                 },
-                process.env.JWT_SECRET || 'fallback_secret',
+                process.env.JWT_SECRET || 'cyberwarriorravi',
                 { expiresIn: '7d' }
             );
 
@@ -141,7 +141,7 @@ exports.forgotPassword = async (req, res) => {
         // Generate reset token (expires in 1 hour)
         const resetToken = jwt.sign(
             { id: user._id, email: user.email },
-            process.env.JWT_SECRET || 'fallback_secret',
+            process.env.JWT_SECRET || 'cyberwarriorravi',
             { expiresIn: '1h' }
         );
         
@@ -216,7 +216,7 @@ exports.resetPassword = async (req, res) => {
         // Verify token
         let decoded;
         try {
-            decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+            decoded = jwt.verify(token, process.env.JWT_SECRET || 'cyberwarriorravi');
         } catch (err) {
             return res.status(400).json({
                 status: false,

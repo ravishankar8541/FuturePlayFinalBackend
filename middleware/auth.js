@@ -11,7 +11,7 @@ module.exports = (req, res, next) => {
             });
         }
         
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'cyberwarriorravi');
         
         const userId = decoded.userId || decoded._id || decoded.id;
         
