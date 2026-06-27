@@ -51,6 +51,6 @@ router.get('/:id', getProduct);
 // Protected Admin Routes - USE uploadFields instead of upload.single
 router.post('/add', adminAuth, uploadFields, addProduct);
 router.put('/:id', adminAuth, uploadFields, updateProduct);
-router.delete('/:id', adminAuth, deleteProduct);
+router.delete('/:id/delete', adminAuth, deleteProduct);
 
 module.exports = router;
