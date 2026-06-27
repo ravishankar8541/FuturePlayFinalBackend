@@ -1,4 +1,3 @@
-// backend/middleware/adminAuth.js
 const jwt = require('jsonwebtoken');
 
 const adminAuth = (req, res, next) => {
@@ -12,9 +11,10 @@ const adminAuth = (req, res, next) => {
             });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+        // Simple verify
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'cyberwarriorravi');
         
-        // Check if user has admin role
+        // Check admin
         if (decoded.role !== 'admin') {
             return res.status(403).json({
                 status: false,
@@ -25,7 +25,7 @@ const adminAuth = (req, res, next) => {
         req.admin = decoded;
         next();
     } catch (error) {
-        console.error('Admin auth error:', error);
+        console.error('Admin auth error:', error.message);
         return res.status(401).json({ 
             status: false, 
             message: "Invalid or expired admin token" 
