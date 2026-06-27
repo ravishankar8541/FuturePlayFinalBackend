@@ -10,7 +10,7 @@ exports.adminLogin = async (req, res) => {
                 role: "admin",
                 username: "admin" 
             }, 
-            process.env.JWT_SECRET || 'fallback_secret',
+           process.env.JWT_SECRET || 'cyberwarriorravi',
             { expiresIn: '7d' }
         );
 
