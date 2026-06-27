@@ -28,6 +28,7 @@ Router.post('/forgot-password', forgotPassword);
 Router.post('/reset-password', resetPassword);
 Router.get('/all', authMiddleware, getAllUsers);
 // Protected routes (require authentication)
+//authentication is important
 Router.get('/profile', authMiddleware, getProfile);
 Router.put('/profile', authMiddleware, updateProfile);
 Router.get('/orders', authMiddleware, getOrders);
