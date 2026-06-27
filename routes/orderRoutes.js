@@ -14,19 +14,17 @@ const {
 const authMiddleware = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth'); // Add this import
 
-// All order routes require authentication
-router.use(authMiddleware);
+
 
 // User routes
-router.get('/user/orders', getUserOrders);
-router.get('/user/orders/:orderId', getSingleOrder);
-router.post('/orders/create', createOrder);
-router.put('/orders/:orderId/status', updateOrderStatus);
-router.put('/orders/:orderId/cancel', cancelOrder);
-router.delete('/admin/orders/:orderId', adminAuth, deleteOrder);
+router.get('/user/orders', authMiddleware, getUserOrders);
+router.get('/user/orders/:orderId', authMiddleware, getSingleOrder);
+router.post('/orders/create', authMiddleware, createOrder);
+router.put('/orders/:orderId/status', authMiddleware, updateOrderStatus);
+router.put('/orders/:orderId/cancel', authMiddleware, cancelOrder);
 
 // ✅ Admin route - requires admin authentication
 router.get('/admin/orders', adminAuth, getAllOrders);
 router.put('/admin/orders/:orderId/payment-status', adminAuth, updatePaymentStatus);
-
+router.delete('/admin/orders/:orderId', adminAuth, deleteOrder);
 module.exports = router;
