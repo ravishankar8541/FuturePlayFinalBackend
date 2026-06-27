@@ -15,70 +15,90 @@ dbConnect();
 
 const PORT = process.env.PORT || 8000;
 
-// ✅ MANUAL CORS HANDLER - 100% Working
+// ✅ SPECIFIC CORS HANDLER - Only Allowed Domains
 app.use((req, res, next) => {
-    // ✅ Allow your frontend domains
+    // ✅ Allowed Origins (Sirf yehi domains allow honge)
     const allowedOrigins = [
         'https://www.futureplaytoys.com',
         'https://futureplaytoys.com'
-        
+       
     ];
     
     const origin = req.headers.origin;
     
     // ✅ Check if origin is allowed
     if (allowedOrigins.includes(origin) || !origin) {
-        res.header('Access-Control-Allow-Origin', origin || '*');
+        res.header('Access-Control-Allow-Origin', origin || 'https://www.futureplaytoys.com');
+    } else {
+        console.log('❌ Blocked CORS from:', origin);
     }
     
-    // ✅ Allow credentials (cookies, authorization headers)
+    // ✅ Allow credentials
     res.header('Access-Control-Allow-Credentials', 'true');
-    
-    // ✅ Allow all methods
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    
-    // ✅ Allow all headers
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-HTTP-Method-Override');
-    
-    // ✅ Expose headers to frontend
     res.header('Access-Control-Expose-Headers', 'Authorization, Content-Disposition');
+    res.header('Access-Control-Max-Age', '86400');
     
-    // ✅ Handle preflight OPTIONS request immediately
+    // ✅ Handle preflight OPTIONS
     if (req.method === 'OPTIONS') {
-        console.log('✅ OPTIONS request handled:', req.headers.origin);
+        console.log('✅ OPTIONS from:', origin || 'Unknown');
         return res.sendStatus(200);
     }
     
+    console.log(`📝 ${req.method} ${req.url} from ${origin || 'Direct'}`);
     next();
 });
 
 // ✅ Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ✅ Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ✅ Routes
+// ✅ Test Route
 app.get('/', (req, res) => {
-    res.send('Server is running!');
+    res.json({ 
+        status: true, 
+        message: '🚀 Server is running!',
+        timestamp: new Date().toISOString()
+    });
 });
 
+// ✅ Health Check
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: true, 
+        message: '✅ API is healthy!'
+    });
+});
+
+// ✅ Routes
 app.use('/api/admin', adminRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 
-// ✅ Error handling middleware (optional but recommended)
+// ✅ 404 Handler
+app.use((req, res) => {
+    res.status(404).json({ 
+        status: false, 
+        message: `❌ Route not found: ${req.originalUrl}` 
+    });
+});
+
+// ✅ Global Error Handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('❌ Error:', err.stack);
     res.status(500).json({ 
         status: false, 
-        message: 'Something went wrong!' 
+        message: err.message || 'Something went wrong!'
     });
 });
 
 app.listen(PORT, () => {
-    console.log(`✅ Server is running on http://localhost:${PORT}`);
+    console.log(`✅ Server running on http://localhost:${PORT}`);
+    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
